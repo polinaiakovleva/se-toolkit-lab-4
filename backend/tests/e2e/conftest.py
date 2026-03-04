@@ -1,30 +1,25 @@
-"""Shared fixtures for end-to-end tests."""
-
+﻿import pytest
+import requests
 import os
+from dotenv import load_dotenv
 
-import httpx
-import pytest
+load_dotenv('.env.tests.e2e.secret')
 
+API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
+API_KEY = os.getenv('API_KEY', 'test')
 
-@pytest.fixture(scope="session")
-def api_base_url() -> str:
-    url = os.environ.get("API_BASE_URL", "")
-    if not url:
-        pytest.skip("API_BASE_URL environment variable is not set")
-    return url.rstrip("/")
-
-
-@pytest.fixture(scope="session")
-def api_token() -> str:
-    token = os.environ.get("API_TOKEN", "")
-    if not token:
-        pytest.skip("API_TOKEN environment variable is not set")
-    return token
-
-
-@pytest.fixture(scope="session")
-def client(api_base_url: str, api_token: str) -> httpx.Client:
-    return httpx.Client(
-        base_url=api_base_url,
-        headers={"Authorization": f"Bearer {api_token}"},
-    )
+@pytest.fixture
+def client():
+    class TestClient:
+        def __init__(self):
+            self.base_url = API_BASE_URL
+            self.headers = {
+                'Authorization': f'Bearer {API_KEY}',
+                'Content-Type': 'application/json'
+            }
+        
+        def get(self, path):
+            url = f"{self.base_url}{path}"
+            return requests.get(url, headers=self.headers)
+    
+    return TestClient()
